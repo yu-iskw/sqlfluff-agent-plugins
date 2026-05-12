@@ -1,0 +1,11 @@
+{
+  "name": "sqlfluff",
+  "version": "1.0.0",
+  "description": "Agent skills for SQLFluff linting, formatting, debugging, and CI rollout.",
+  "author": {
+    "name": "yu-iskw"
+  },
+  "license": "Apache-2.0",
+  "repository": "https://github.com/yu-iskw/sqlfluff-agent-plugins",
+  "skills": "./skills/"
+}
