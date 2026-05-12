@@ -1,73 +1,75 @@
-# Claude Plugin Monorepo Template
+# SQLFluff Agent Skills Plugin
 
-Template repository for bootstrapping high-quality Claude Code plugins with shared CI/CD and testing infrastructure.
+Agent skills for using SQLFluff safely on large SQL and dbt-style projects.
 
-## Key Features
-
-- **Standard Plugin Layout**: Follows best practices for Skills, Agents, Hooks, MCP, and LSP.
-- **Monorepo Ready**: Designed to host multiple plugins under the `plugins/` directory.
-- **Comprehensive Examples**: The `hello-world` plugin demonstrates every available extension point.
-- **Shared CI/CD**: Unified quality checks via `trunk` and GitHub Actions.
-- **Integration Tests**: Automated smoke tests that validate manifest schemas, component discovery, and **plugin installation** (marketplace add + install + list/validate) across all plugins.
+This repository packages a skills-first `sqlfluff` plugin under `plugins/sqlfluff`. See `plugins/sqlfluff/README.md` for the full skill catalog and plugin-specific usage notes.
 
 ## Repository Layout
 
 ```text
 .
-├── plugins/                     # Container for all plugins
-│   └── hello-world/             # Comprehensive sample plugin
-│       ├── .claude-plugin/      # Plugin metadata (plugin.json)
-│       ├── agents/              # Custom agent definitions
-│       ├── skills/              # Model-invoked skills (SKILL.md)
-│       ├── hooks/               # Event hook configurations
-│       ├── .mcp.json            # MCP server configuration
-│       └── .lsp.json            # LSP server configuration
-├── integration_tests/           # Shared testing harness
-│   ├── run.sh                   # Test orchestrator (scans plugins/)
-│   ├── validate-manifest.sh     # Manifest JSON schema validator
-│   └── ...
-├── .github/workflows/           # GitHub Actions (Lint, Integration Tests)
-├── Makefile                     # Task runner
+├── plugins/
+│   └── sqlfluff/
+│       ├── .claude-plugin/
+│       │   └── plugin.json
+│       ├── .cursor-plugin/
+│       │   └── plugin.json
+│       ├── .codex-plugin/
+│       │   └── plugin.json
+│       ├── skills/
+│       │   └── <skill-name>/
+│       │       ├── SKILL.md
+│       │       └── references/
+│       │           └── <reference>.md
+│       └── README.md
+├── integration_tests/
+├── Makefile
 └── README.md
 ```
 
-## Quickstart
+## SQLFluff Assumptions
 
-1.  **Create a new repository** from this template.
-2.  **Explore the sample plugin** in `plugins/hello-world/` to see how components are defined.
-3.  **Run local checks**:
-    ```bash
-    make lint
-    make test-integration-docker
-    ```
+The skills are grounded in SQLFluff CLI workflows:
 
-## Development
+```bash
+sqlfluff version
+sqlfluff dialects --nocolor -v
+sqlfluff rules --nocolor -v
+sqlfluff lint models/staging/orders.sql --format json --nofail --disable-progress-bar
+sqlfluff format models/staging/orders.sql --disable-progress-bar
+sqlfluff render models/marts/orders.sql --dialect snowflake --templater jinja
+sqlfluff parse models/marts/orders.sql --dialect snowflake --format yaml
+```
 
-### Adding a New Plugin
+For dbt-style projects, the skills instruct agents to detect templater support instead of assuming the dbt templater is installed.
 
-Create a new directory in `plugins/` following the [Standard Plugin Layout](https://code.claude.com/docs/en/plugins-reference#standard-plugin-layout):
+## Validation
 
-- `plugins/<name>/.claude-plugin/plugin.json`: Required manifest.
-- `plugins/<name>/skills/`: Agent Skills folder.
-- `plugins/<name>/agents/`: Subagent markdown files.
-- `plugins/<name>/hooks/`: Event hook configurations.
-- `plugins/<name>/.mcp.json`: MCP configurations.
-- `plugins/<name>/.lsp.json`: LSP configurations.
+Run plugin validation from the repository root:
 
-### Testing
+```bash
+./integration_tests/run.sh --skip-loading --verbose
+```
 
-The integration test runner (`./integration_tests/run.sh`) automatically discovers all directories in `plugins/` that contain a `.claude-plugin/plugin.json` file.
+Validate skill structure and frontmatter:
 
-- Run all tests: `./integration_tests/run.sh`
-- Verbose output: `./integration_tests/run.sh --verbose`
-- Skip loading tests (if Claude CLI is not installed): `./integration_tests/run.sh --skip-loading`
+```bash
+bash .claude/skills/implement-agent-skills/scripts/validate-skill-structure.sh plugins/sqlfluff/skills
+bash .claude/skills/implement-agent-skills/scripts/check-skill-frontmatter.sh plugins/sqlfluff/skills/sqlfluff-project-onboarding/SKILL.md
+```
 
-Docker integration tests (`make test-integration-docker`) run the same suite inside a container and additionally run a **plugin install** test: they add the workspace as a marketplace, install each plugin with `claude plugin install`, and verify with `claude plugin list`. The same Docker flow runs in CI (job `plugin-install-docker`).
+Run the skill validators for every skill directory before release. Run repository linting with:
 
-## CI/CD
+```bash
+make lint
+```
 
-- **Trunk Check**: Runs linters and static analysis on every PR.
-- **Integration Tests**: Automatically validates every plugin in the `plugins/` directory.
+## Development Notes
+
+- Keep each skill self-contained; do not require another skill on the success path.
+- Keep `SKILL.md` concise and put detailed command notes in one-level `references/` files.
+- Avoid automatic hooks until rollout behavior is proven on real projects.
+- Require explicit user approval before using `sqlfluff fix --FIX-EVEN-UNPARSABLE`.
 
 ## License
 
